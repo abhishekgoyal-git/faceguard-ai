@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: faceguard_db
+    environment:
+      POSTGRES_USER: faceguard_user
+      POSTGRES_PASSWORD: faceguard_secure_password_2026
+      POSTGRES_DB: faceguard_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U faceguard_user -d faceguard_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: faceguard_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://faceguard_user:faceguard_secure_password_2026@postgres:5432/faceguard_db
+      - SECRET_KEY=super-secret-key-faceguard-ai-2026-production-grad-key-xyz987
+      - EMBEDDING_DIM=512
+      - SIMILARITY_THRESHOLD=0.60
+      - SPOOF_THRESHOLD=0.50
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: faceguard_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
